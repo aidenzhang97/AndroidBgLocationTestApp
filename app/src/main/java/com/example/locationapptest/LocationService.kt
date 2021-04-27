@@ -33,6 +33,7 @@ class LocationService : Service(), LocationListener {
     private val binder: LocationBinder = LocationBinder()
 
     /** handler for service */
+    private lateinit var handlerThread: HandlerThread
     lateinit var serviceHandler: ServiceHandler
 
     /** location manager */
@@ -96,11 +97,12 @@ class LocationService : Service(), LocationListener {
             LocationManager::class.java
         ) as LocationManager
         locationInfoQueue = ArrayBlockingQueue(20)
-        HandlerThread("ServiceStartArguments", Process.THREAD_PRIORITY_BACKGROUND).apply {
-            start()
-            // Get the HandlerThread's Looper and use it for our Handler
-            serviceHandler = ServiceHandler(looper)
-        }
+        handlerThread =
+            HandlerThread("ServiceStartArguments", Process.THREAD_PRIORITY_BACKGROUND).apply {
+                start()
+                // Get the HandlerThread's Looper and use it for our Handler
+                serviceHandler = ServiceHandler(looper)
+            }
         locationUpdating = false
     }
 
@@ -130,6 +132,7 @@ class LocationService : Service(), LocationListener {
         locationManager.removeUpdates(this)
         serviceHandler.removeCallbacksAndMessages(null)
         serviceHandler.looper.quitSafely()
+        handlerThread.quitSafely()
         locationInfoQueue.clear()
         super.onDestroy()
     }
@@ -148,6 +151,10 @@ class LocationService : Service(), LocationListener {
             }
         }
         return false
+    }
+
+    override fun onStatusChanged(provider: String?, status: Int, extras: Bundle?) {
+        //super.onStatusChanged(provider, status, extras)
     }
 
     override fun onLocationChanged(location: Location) {
